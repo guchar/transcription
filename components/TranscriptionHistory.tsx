@@ -119,6 +119,14 @@ export default function TranscriptionHistory({
                     {saved.transcription.words.length}
                   </p>
                 )}
+                {saved.transcription.speakers && saved.transcription.speakers > 1 && (
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    <span className="font-medium">Speakers:</span>{' '}
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                      {saved.transcription.speakers}
+                    </span>
+                  </p>
+                )}
               </div>
               
               <p className="mt-2 text-xs text-gray-600 dark:text-gray-400 line-clamp-2">

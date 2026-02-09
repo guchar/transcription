@@ -2,6 +2,14 @@ export interface TranscriptionWord {
   word: string;
   start: number;
   end: number;
+  speaker?: number;
+}
+
+export interface TranscriptionSegment {
+  speaker: number;
+  text: string;
+  start: number;
+  end: number;
 }
 
 export interface TranscriptionResponse {
@@ -9,6 +17,8 @@ export interface TranscriptionResponse {
   language: string;
   duration: number;
   words?: TranscriptionWord[];
+  segments?: TranscriptionSegment[];
+  speakers?: number;
 }
 
 export interface TranscriptionError {

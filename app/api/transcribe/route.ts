@@ -1,8 +1,80 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { TranscriptionSegment, TranscriptionWord } from '@/lib/types';
 
 // Configure route to handle large files
 export const maxDuration = 300; // 5 minutes max for transcription
 export const dynamic = 'force-dynamic';
+
+interface DeepgramWord {
+  word: string;
+  start: number;
+  end: number;
+  confidence: number;
+  speaker?: number;
+  punctuated_word?: string;
+}
+
+interface DeepgramResponse {
+  results: {
+    channels: [{
+      alternatives: [{
+        transcript: string;
+        confidence: number;
+        words: DeepgramWord[];
+      }];
+    }];
+  };
+  metadata: {
+    duration: number;
+  };
+}
+
+function groupWordsBySpeaker(words: DeepgramWord[]): TranscriptionSegment[] {
+  if (!words || words.length === 0) return [];
+
+  const segments: TranscriptionSegment[] = [];
+  let currentSpeaker = words[0].speaker ?? 0;
+  let currentText = '';
+  let currentStart = words[0].start;
+  let currentEnd = words[0].end;
+
+  words.forEach((word, index) => {
+    const speaker = word.speaker ?? 0;
+    const wordText = word.punctuated_word || word.word;
+
+    if (speaker !== currentSpeaker) {
+      // Speaker changed, save current segment
+      segments.push({
+        speaker: currentSpeaker,
+        text: currentText.trim(),
+        start: currentStart,
+        end: currentEnd,
+      });
+
+      // Start new segment
+      currentSpeaker = speaker;
+      currentText = wordText;
+      currentStart = word.start;
+      currentEnd = word.end;
+    } else {
+      // Same speaker, continue building text
+      currentText += ' ' + wordText;
+      currentEnd = word.end;
+    }
+
+    // Handle last word
+    if (index === words.length - 1) {
+      segments.push({
+        speaker: currentSpeaker,
+        text: currentText.trim(),
+        start: currentStart,
+        end: currentEnd,
+      });
+    }
+  });
+
+  return segments;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,53 +107,82 @@ export async function POST(request: NextRequest) {
     }
 
     // Get API key from environment
-    const apiKey = process.env.CARTESIA_API_KEY;
+    const apiKey = process.env.DEEPGRAM_API_KEY;
     if (!apiKey) {
-      console.error('CARTESIA_API_KEY not found in environment variables');
+      console.error('DEEPGRAM_API_KEY not found in environment variables');
       return NextResponse.json(
         { error: 'Server configuration error: API key not configured' },
         { status: 500 }
       );
     }
 
-    // Create form data for Cartesia API
-    const cartesiaFormData = new FormData();
-    cartesiaFormData.append('file', file);
-    cartesiaFormData.append('model', 'ink-whisper');
-    cartesiaFormData.append('language', language);
-    cartesiaFormData.append('timestamp_granularities[]', 'word');
+    // Convert file to array buffer for Deepgram
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
 
-    // Call Cartesia STT API
-    const cartesiaResponse = await fetch('https://api.cartesia.ai/stt', {
+    // Call Deepgram API with diarization enabled
+    const deepgramUrl = `https://api.deepgram.com/v1/listen?model=nova-2&diarize=true&punctuate=true&smart_format=true&language=${language}`;
+    
+    const deepgramResponse = await fetch(deepgramUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Cartesia-Version': '2025-04-16',
+        'Authorization': `Token ${apiKey}`,
+        'Content-Type': file.type || 'audio/wav',
       },
-      body: cartesiaFormData,
+      body: buffer,
     });
 
-    if (!cartesiaResponse.ok) {
-      const errorText = await cartesiaResponse.text();
-      console.error('Cartesia API error:', errorText);
+    if (!deepgramResponse.ok) {
+      const errorText = await deepgramResponse.text();
+      console.error('Deepgram API error:', errorText);
       
       let errorMessage = 'Transcription failed';
       try {
         const errorJson = JSON.parse(errorText);
         errorMessage = errorJson.error || errorJson.message || errorMessage;
       } catch {
-        errorMessage = `Transcription failed: ${cartesiaResponse.statusText}`;
+        errorMessage = `Transcription failed: ${deepgramResponse.statusText}`;
       }
 
       return NextResponse.json(
         { error: errorMessage, details: errorText },
-        { status: cartesiaResponse.status }
+        { status: deepgramResponse.status }
       );
     }
 
-    const transcription = await cartesiaResponse.json();
+    const deepgramData: DeepgramResponse = await deepgramResponse.json();
+    
+    // Extract transcript and words from Deepgram response
+    const channel = deepgramData.results.channels[0];
+    const alternative = channel.alternatives[0];
+    const transcript = alternative.transcript;
+    const words = alternative.words;
+    const duration = deepgramData.metadata.duration;
 
-    return NextResponse.json(transcription);
+    // Group words by speaker
+    const segments = groupWordsBySpeaker(words);
+
+    // Count unique speakers
+    const speakerSet = new Set(words.map(w => w.speaker ?? 0));
+    const speakerCount = speakerSet.size;
+
+    // Map words to our interface
+    const transcriptionWords: TranscriptionWord[] = words.map(w => ({
+      word: w.punctuated_word || w.word,
+      start: w.start,
+      end: w.end,
+      speaker: w.speaker,
+    }));
+
+    // Return response in expected format
+    return NextResponse.json({
+      text: transcript,
+      language: language,
+      duration: duration,
+      words: transcriptionWords,
+      segments: segments,
+      speakers: speakerCount,
+    });
   } catch (error) {
     console.error('Transcription error:', error);
     return NextResponse.json(
