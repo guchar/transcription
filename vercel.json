@@ -2,8 +2,7 @@
   "functions": {
     "app/api/transcribe/route.ts": {
       "maxDuration": 300,
-      "memory": 1024,
-      "maxRequestBodySizeBytes": 10485760
+      "memory": 1024
     }
   }
 }
