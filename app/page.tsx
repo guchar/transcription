@@ -102,7 +102,7 @@ export default function Home() {
             Audio Transcription
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-400">
-            Transcribe audio files up to 1 hour long using Cartesia STT
+            Transcribe audio files up to 500MB using Cartesia STT
           </p>
           
           {/* Action Buttons */}

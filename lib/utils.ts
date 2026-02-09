@@ -34,11 +34,11 @@ export function validateAudioFile(file: File): { valid: boolean; error?: string 
     };
   }
 
-  const maxSize = 100 * 1024 * 1024; // 100MB
+  const maxSize = 500 * 1024 * 1024; // 500MB
   if (file.size > maxSize) {
     return {
       valid: false,
-      error: `File size exceeds 100MB limit. Your file is ${(file.size / (1024 * 1024)).toFixed(2)}MB`,
+      error: `File size exceeds 500MB limit. Your file is ${(file.size / (1024 * 1024)).toFixed(2)}MB`,
     };
   }
 

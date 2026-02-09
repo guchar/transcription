@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Configure route to handle large files
+export const maxDuration = 300; // 5 minutes max for transcription
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -13,10 +16,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file size (max 100MB)
-    if (file.size > 100 * 1024 * 1024) {
+    // Validate file size (max 500MB)
+    if (file.size > 500 * 1024 * 1024) {
       return NextResponse.json(
-        { error: 'File size exceeds 100MB limit' },
+        { error: 'File size exceeds 500MB limit' },
         { status: 400 }
       );
     }

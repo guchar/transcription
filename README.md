@@ -4,7 +4,7 @@ A modern web application for transcribing audio files using Cartesia's STT (Spee
 
 ## Features
 
-- 🎤 Upload audio files up to 1 hour long
+- 🎤 Upload audio files up to 500MB (approximately 3-5 hours of audio)
 - 🌍 Support for 25+ languages (90+ available via Cartesia)
 - ⏱️ Word-level timestamps for precise playback
 - 📊 Statistics including word count and speaking rate

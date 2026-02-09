@@ -21,8 +21,8 @@ Choose the language of your audio file from the dropdown menu. The default is En
 
 Supported formats:
 - MP3, WAV, M4A, FLAC, OGG, WebM, MP4
-- Maximum file size: 100MB
-- Maximum duration: ~1 hour
+- Maximum file size: 500MB
+- Maximum duration: ~3-5 hours (depending on bitrate)
 
 ### Step 3: Transcribe
 Click the "Transcribe Audio" button. The transcription may take a few moments depending on the file size.
@@ -47,10 +47,10 @@ CARTESIA_API_KEY=your_actual_api_key_here
 ```
 
 ### File size exceeds limit
-Audio files must be under 100MB. Try:
-- Using a lower bitrate encoding
+Audio files must be under 500MB. Try:
+- Using a lower bitrate encoding (e.g., MP3 at 64kbps for voice)
 - Converting to a more efficient format (e.g., MP3 at 128kbps)
-- Splitting longer files into segments
+- Splitting longer files into segments if needed
 
 ### Transcription takes too long
 This is normal for longer files. A 1-hour audio file may take several minutes to process.

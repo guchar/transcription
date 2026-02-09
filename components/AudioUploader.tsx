@@ -86,6 +86,17 @@ export default function AudioUploader({ onTranscriptionComplete }: AudioUploader
       clearInterval(uploadInterval);
       setUploadProgress(100);
 
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        throw new Error(
+          response.status === 413 
+            ? 'File is too large. Please use a smaller file or compress your audio.'
+            : `Server error: ${text.substring(0, 100)}`
+        );
+      }
+
       const data = await response.json();
 
       if (!response.ok) {
@@ -96,7 +107,13 @@ export default function AudioUploader({ onTranscriptionComplete }: AudioUploader
       setSelectedFile(null);
       setUploadProgress(0);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      if (err instanceof Error) {
+        setError(err.message);
+      } else if (typeof err === 'string') {
+        setError(err);
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
       setUploadProgress(0);
     } finally {
       setIsLoading(false);
@@ -185,7 +202,7 @@ export default function AudioUploader({ onTranscriptionComplete }: AudioUploader
               )}
             </span>
             <span className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-              MP3, WAV, M4A, FLAC, OGG, WebM up to 100MB
+              MP3, WAV, M4A, FLAC, OGG, WebM up to 500MB
             </span>
           </label>
         </div>
