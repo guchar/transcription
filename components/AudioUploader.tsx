@@ -66,8 +66,8 @@ export default function AudioUploader({ onTranscriptionComplete }: AudioUploader
       const fileSize = selectedFile.size;
       const fileSizeMB = fileSize / (1024 * 1024);
       
-      // Use direct upload for files larger than 10MB
-      if (fileSizeMB > 10) {
+      // Use direct upload for files larger than 4MB (Vercel Hobby limit is ~4.5MB)
+      if (fileSizeMB > 4) {
         await handleDirectUpload();
       } else {
         await handleProxyUpload();
@@ -86,7 +86,7 @@ export default function AudioUploader({ onTranscriptionComplete }: AudioUploader
     }
   }
 
-  // Direct upload to Deepgram (for large files)
+  // Direct upload to Deepgram (for files > 4MB)
   async function handleDirectUpload() {
     if (!selectedFile) return;
 
@@ -167,7 +167,7 @@ export default function AudioUploader({ onTranscriptionComplete }: AudioUploader
     }
   }
 
-  // Proxy upload through API route (for small files)
+  // Proxy upload through API route (for files ≤ 4MB)
   async function handleProxyUpload() {
     if (!selectedFile) return;
 
