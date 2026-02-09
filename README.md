@@ -12,6 +12,7 @@ A modern web application for transcribing audio files using Cartesia's STT (Spee
 - 📥 Download transcriptions as text files
 - 📋 Copy transcription to clipboard
 - 🔄 Drag-and-drop file upload
+- 💾 Transcription history with localStorage persistence
 
 ## Supported Audio Formats
 
@@ -58,6 +59,22 @@ npm run dev
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
+## Important: File Size Limits in Development
+
+⚠️ **Development Mode Limitation**: Next.js development server has a default body size limit of ~4-5MB. For files larger than 5MB, you need to use production mode:
+
+###Solution for Large Files:
+
+1. **Build for production**:
+   ```bash
+   npm run build
+   npm start
+   ```
+
+2. **Or test with smaller files** (< 5MB) in development mode
+
+3. **In production** (Vercel, etc.), the full 500MB limit will work automatically
+
 ## Usage
 
 1. Select the language of your audio file
@@ -65,6 +82,7 @@ npm run dev
 3. Click "Transcribe Audio" and wait for processing
 4. View the transcription with word-level timestamps
 5. Copy or download the transcript as needed
+6. Access transcription history to view previous transcriptions
 
 ## API Pricing
 
@@ -92,7 +110,8 @@ transcription/
 │   └── page.tsx              # Home page
 ├── components/
 │   ├── AudioUploader.tsx     # File upload component
-│   └── TranscriptionDisplay.tsx # Results display
+│   ├── TranscriptionDisplay.tsx # Results display
+│   └── TranscriptionHistory.tsx # History viewer
 ├── lib/
 │   ├── types.ts              # TypeScript types
 │   └── utils.ts              # Utility functions
@@ -106,6 +125,16 @@ transcription/
 npm run build
 npm start
 ```
+
+## Deployment
+
+This app works great with Vercel:
+
+```bash
+vercel deploy
+```
+
+Make sure to add your `CARTESIA_API_KEY` environment variable in your Vercel project settings.
 
 ## License
 

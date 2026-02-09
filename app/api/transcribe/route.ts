@@ -2,9 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Configure route to handle large files
 export const maxDuration = 300; // 5 minutes max for transcription
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
+    // Parse form data manually to handle large files
+    const contentType = request.headers.get('content-type') || '';
+    if (!contentType.includes('multipart/form-data')) {
+      return NextResponse.json(
+        { error: 'Content-Type must be multipart/form-data' },
+        { status: 400 }
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const language = formData.get('language') as string || 'en';
