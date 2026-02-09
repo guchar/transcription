@@ -1,0 +1,116 @@
+# Audio Transcription App
+
+A modern web application for transcribing audio files using Cartesia's STT (Speech-to-Text) API.
+
+## Features
+
+- 🎤 Upload audio files up to 1 hour long
+- 🌍 Support for 25+ languages (90+ available via Cartesia)
+- ⏱️ Word-level timestamps for precise playback
+- 📊 Statistics including word count and speaking rate
+- 🎨 Beautiful, responsive UI with dark mode support
+- 📥 Download transcriptions as text files
+- 📋 Copy transcription to clipboard
+- 🔄 Drag-and-drop file upload
+
+## Supported Audio Formats
+
+- MP3
+- WAV
+- M4A
+- FLAC
+- OGG
+- WebM
+- MP4
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+ installed
+- A Cartesia API key (sign up at [cartesia.ai](https://cartesia.ai))
+
+### Installation
+
+1. Clone the repository and navigate to the project directory:
+
+```bash
+cd transcription
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Create a `.env` file with your Cartesia API key:
+
+```
+CARTESIA_API_KEY=your_api_key_here
+```
+
+4. Run the development server:
+
+```bash
+npm run dev
+```
+
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+## Usage
+
+1. Select the language of your audio file
+2. Upload an audio file (drag-and-drop or click to browse)
+3. Click "Transcribe Audio" and wait for processing
+4. View the transcription with word-level timestamps
+5. Copy or download the transcript as needed
+
+## API Pricing
+
+Cartesia charges **1 credit per 2 seconds** of audio:
+- 1-minute audio = 30 credits
+- 1-hour audio = 1,800 credits
+
+## Technology Stack
+
+- **Framework**: Next.js 14 with App Router
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **API**: Cartesia Ink Whisper STT
+
+## Project Structure
+
+```
+transcription/
+├── app/
+│   ├── api/
+│   │   └── transcribe/
+│   │       └── route.ts      # API endpoint
+│   ├── globals.css           # Global styles
+│   ├── layout.tsx            # Root layout
+│   └── page.tsx              # Home page
+├── components/
+│   ├── AudioUploader.tsx     # File upload component
+│   └── TranscriptionDisplay.tsx # Results display
+├── lib/
+│   ├── types.ts              # TypeScript types
+│   └── utils.ts              # Utility functions
+├── .env                      # Environment variables
+└── package.json
+```
+
+## Building for Production
+
+```bash
+npm run build
+npm start
+```
+
+## License
+
+MIT
+
+## Support
+
+For issues with the Cartesia API, visit [docs.cartesia.ai](https://docs.cartesia.ai)
