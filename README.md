@@ -135,11 +135,14 @@ npm start
 
 This app works great with Vercel:
 
-```bash
-vercel deploy
-```
+1. Push your code to GitHub
+2. Import the project in Vercel
+3. **Important**: Add `DEEPGRAM_API_KEY` environment variable in Vercel project settings (Settings → Environment Variables)
+4. Deploy!
 
-Make sure to add your `DEEPGRAM_API_KEY` environment variable in your Vercel project settings.
+The app uses a hybrid upload approach:
+- Files ≤ 4MB: Proxied through Vercel API route
+- Files > 4MB: Direct browser-to-Deepgram upload (no Vercel limits)
 
 ## Speaker Diarization
 
