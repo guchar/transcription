@@ -63,49 +63,15 @@ export default function AudioUploader({ onTranscriptionComplete }: AudioUploader
     setError(null);
 
     try {
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-      formData.append('language', selectedLanguage);
-
-      // Simulate progress for upload phase
-      const uploadInterval = setInterval(() => {
-        setUploadProgress((prev) => {
-          if (prev >= 95) {
-            clearInterval(uploadInterval);
-            return 95;
-          }
-          return prev + 5;
-        });
-      }, 200);
-
-      const response = await fetch('/api/transcribe', {
-        method: 'POST',
-        body: formData,
-      });
-
-      clearInterval(uploadInterval);
-      setUploadProgress(100);
-
-      // Check if response is JSON
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        throw new Error(
-          response.status === 413 
-            ? 'File is too large. Please use a smaller file or compress your audio.'
-            : `Server error: ${text.substring(0, 100)}`
-        );
+      const fileSize = selectedFile.size;
+      const fileSizeMB = fileSize / (1024 * 1024);
+      
+      // Use direct upload for files larger than 10MB
+      if (fileSizeMB > 10) {
+        await handleDirectUpload();
+      } else {
+        await handleProxyUpload();
       }
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error((data as TranscriptionError).error || 'Transcription failed');
-      }
-
-      onTranscriptionComplete(data as TranscriptionResponse, selectedFile.name);
-      setSelectedFile(null);
-      setUploadProgress(0);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -118,6 +84,180 @@ export default function AudioUploader({ onTranscriptionComplete }: AudioUploader
     } finally {
       setIsLoading(false);
     }
+  }
+
+  // Direct upload to Deepgram (for large files)
+  async function handleDirectUpload() {
+    if (!selectedFile) return;
+
+    try {
+      // Get API key from our secure endpoint
+      const keyResponse = await fetch('/api/deepgram-key');
+      if (!keyResponse.ok) {
+        throw new Error('Failed to get API credentials');
+      }
+      const { apiKey } = await keyResponse.json();
+
+      // Simulate progress
+      const uploadInterval = setInterval(() => {
+        setUploadProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(uploadInterval);
+            return 90;
+          }
+          return prev + 5;
+        });
+      }, 300);
+
+      // Upload directly to Deepgram
+      const deepgramUrl = `https://api.deepgram.com/v1/listen?model=nova-2&diarize=true&punctuate=true&smart_format=true&language=${selectedLanguage}`;
+      
+      const arrayBuffer = await selectedFile.arrayBuffer();
+      
+      const deepgramResponse = await fetch(deepgramUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${apiKey}`,
+          'Content-Type': selectedFile.type || 'audio/wav',
+        },
+        body: arrayBuffer,
+      });
+
+      clearInterval(uploadInterval);
+      setUploadProgress(95);
+
+      if (!deepgramResponse.ok) {
+        const errorText = await deepgramResponse.text();
+        throw new Error(`Transcription failed: ${deepgramResponse.statusText}`);
+      }
+
+      const deepgramData = await deepgramResponse.json();
+      
+      // Process the response
+      const channel = deepgramData.results.channels[0];
+      const alternative = channel.alternatives[0];
+      const words = alternative.words;
+
+      // Group words by speaker
+      const segments = groupWordsBySpeaker(words);
+      
+      // Count unique speakers
+      const speakerSet = new Set(words.map((w: any) => w.speaker ?? 0));
+      
+      const result: TranscriptionResponse = {
+        text: alternative.transcript,
+        language: selectedLanguage,
+        duration: deepgramData.metadata.duration,
+        words: words.map((w: any) => ({
+          word: w.punctuated_word || w.word,
+          start: w.start,
+          end: w.end,
+          speaker: w.speaker,
+        })),
+        segments: segments,
+        speakers: speakerSet.size,
+      };
+
+      setUploadProgress(100);
+      onTranscriptionComplete(result, selectedFile.name);
+      setSelectedFile(null);
+      setUploadProgress(0);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Proxy upload through API route (for small files)
+  async function handleProxyUpload() {
+    if (!selectedFile) return;
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('language', selectedLanguage);
+
+    // Simulate progress for upload phase
+    const uploadInterval = setInterval(() => {
+      setUploadProgress((prev) => {
+        if (prev >= 95) {
+          clearInterval(uploadInterval);
+          return 95;
+        }
+        return prev + 5;
+      });
+    }, 200);
+
+    const response = await fetch('/api/transcribe', {
+      method: 'POST',
+      body: formData,
+    });
+
+    clearInterval(uploadInterval);
+    setUploadProgress(100);
+
+    // Check if response is JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      throw new Error(
+        response.status === 413 
+          ? 'File is too large. Please use a smaller file or compress your audio.'
+          : `Server error: ${text.substring(0, 100)}`
+      );
+    }
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error((data as TranscriptionError).error || 'Transcription failed');
+    }
+
+    onTranscriptionComplete(data as TranscriptionResponse, selectedFile.name);
+    setSelectedFile(null);
+    setUploadProgress(0);
+  }
+
+  // Helper function to group words by speaker
+  function groupWordsBySpeaker(words: any[]) {
+    if (!words || words.length === 0) return [];
+
+    const segments: any[] = [];
+    let currentSpeaker = words[0].speaker ?? 0;
+    let currentText = '';
+    let currentStart = words[0].start;
+    let currentEnd = words[0].end;
+
+    words.forEach((word, index) => {
+      const speaker = word.speaker ?? 0;
+      const wordText = word.punctuated_word || word.word;
+
+      if (speaker !== currentSpeaker) {
+        segments.push({
+          speaker: currentSpeaker,
+          text: currentText.trim(),
+          start: currentStart,
+          end: currentEnd,
+        });
+
+        currentSpeaker = speaker;
+        currentText = wordText;
+        currentStart = word.start;
+        currentEnd = word.end;
+      } else {
+        currentText += ' ' + wordText;
+        currentEnd = word.end;
+      }
+
+      if (index === words.length - 1) {
+        segments.push({
+          speaker: currentSpeaker,
+          text: currentText.trim(),
+          start: currentStart,
+          end: currentEnd,
+        });
+      }
+    });
+
+    return segments;
   }
 
   return (
